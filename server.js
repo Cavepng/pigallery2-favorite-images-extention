@@ -1,10 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cleanUp = exports.init = void 0;
-const UserDTO_1 = require("./node_modules/pigallery2-extension-kit/lib/common/entities/UserDTO");
+const UserDTO_1 = require("pigallery2-extension-kit/lib/common/entities/UserDTO");
 const init = async (extension) => {
     extension.Logger.debug(`Favorites extension is setting up. name: ${extension.extensionName}, id: ${extension.extensionId}`);
-    // Add CSS injection or style handling if needed, and the favorite toggle button
     extension.ui.addMediaButton({
         name: 'favorite',
         svgIcon: {
@@ -14,10 +13,10 @@ const init = async (extension) => {
         apiPath: 'toggle-favorite',
         reloadContent: true,
         alwaysVisible: true,
-        minUserRole: UserDTO_1.UserRoles.User,
-        metadataFilter: [{ field: 'keywords', comparator: '==', value: 'pg-favorite' }]
+        minUserRole: UserDTO_1.UserRoles.User
     }, async (params, body, user, media, repository) => {
         const favTag = 'pg-favorite';
+        media.metadata = media.metadata || {};
         media.metadata.keywords = media.metadata.keywords || [];
         const idx = media.metadata.keywords.indexOf(favTag);
         if (idx >= 0) {

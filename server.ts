@@ -1,10 +1,9 @@
 import { IExtensionObject } from "pigallery2-extension-kit";
-import { UserRoles } from "./node_modules/pigallery2-extension-kit/lib/common/entities/UserDTO";
+import { UserRoles } from "pigallery2-extension-kit/lib/common/entities/UserDTO";
 
 export const init = async (extension: IExtensionObject): Promise<void> => {
     extension.Logger.debug(`Favorites extension is setting up. name: ${extension.extensionName}, id: ${extension.extensionId}`);
 
-    // Add CSS injection or style handling if needed, and the favorite toggle button
     extension.ui.addMediaButton({
         name: 'favorite',
         svgIcon: {
@@ -14,11 +13,12 @@ export const init = async (extension: IExtensionObject): Promise<void> => {
         apiPath: 'toggle-favorite',
         reloadContent: true,
         alwaysVisible: true,
-        minUserRole: UserRoles.User,
-        metadataFilter: [{ field: 'keywords', comparator: '==', value: 'pg-favorite' }]
-    }, async (params, body, user, media, repository) => {
+        minUserRole: UserRoles.User
+    }, async (params: any, body: any, user: any, media: any, repository: any) => {
         const favTag = 'pg-favorite';
+        media.metadata = media.metadata || {};
         media.metadata.keywords = media.metadata.keywords || [];
+
         const idx = media.metadata.keywords.indexOf(favTag);
         if (idx >= 0) {
             media.metadata.keywords.splice(idx, 1);
