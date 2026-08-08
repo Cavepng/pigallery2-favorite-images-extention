@@ -1,10 +1,7 @@
-# pigallery2-sample-extension
+# pigallery2-favorite-images-extention
 
-Pigallery 2 extension example
-
-Fork this project to build your own extension.
-
-
+How to build the extention.
+ 
 Usage:
 
 ```
@@ -12,16 +9,10 @@ npm install
 npm run build
 ```
 
-Also see extension documentation at https://github.com/bpatrik/pigallery2/tree/master/extension
+See extension documentation at https://github.com/bpatrik/pigallery2/tree/master/extension
 
 ------------------------------------------------------------------------
 
-This sample extension adds the following and more: 
-
-Four new buttons to the top left of the photo:
- * Great photo if the photo has 4+ stars
- * edit button for editing a photo
- * delete button for deleting a photo (only from db)
- * Add photo to an album
-
-![Added buttons](buttons.png)
+This extension adds the following features: 
+ * Adds favorite button to each image in the gallary modal
+ * Adds a Favorites tab to the menu bar
