@@ -1,319 +1,34 @@
-// Including dev-kit interfaces. It is not necessary, it only helps development with types.
-// You need to prefix them with ./node_modules
-import {IExtensionObject} from './node_modules/pigallery2-extension-kit';
-import {PhotoMetadata} from './node_modules/pigallery2-extension-kit/lib/common/entities/PhotoDTO';
-import {UserDTO, UserRoles} from './node_modules/pigallery2-extension-kit/lib/common/entities/UserDTO';
-import {MediaEntity} from './node_modules/pigallery2-extension-kit/lib/backend/model/database/enitites/MediaEntity';
-import {
-  SearchQueryTypes,
-  TextSearch,
-  TextSearchQueryMatchTypes
-} from './node_modules/pigallery2-extension-kit/lib/common/entities/SearchQueryDTO';
-import {IMediaRequestBody} from './node_modules/pigallery2-extension-kit/lib/backend/model/extension/IExtension';
+import { IExtensionObject } from "pigallery2-extension-kit";
+import { UserRoles } from "./node_modules/pigallery2-extension-kit/lib/common/entities/UserDTO";
 
-// Including prod extension packages. You need to prefix them with ./node_modules
-// lodash does not have types
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import * as _ from './node_modules/lodash';
+export const init = async (extension: IExtensionObject): Promise<void> => {
+    extension.Logger.debug(`Favorites extension is setting up. name: ${extension.extensionName}, id: ${extension.extensionId}`);
 
-// Importing packages that are available in the main app (listed in the packages.json in pigallery2)
-import {Column, Entity, Index, PrimaryGeneratedColumn, Repository} from 'typeorm';
-import {TestConfig} from './config';
-import {ParamsDictionary} from 'express-serve-static-core';
-
-// Using typeorm for ORM
-@Entity()
-class TestLoggerEntity {
-  @Index()
-  @PrimaryGeneratedColumn({unsigned: true})
-  id: number;
-
-  @Column()
-  text: string;
-}
-
-
-export const init = async (extension: IExtensionObject<TestConfig>): Promise<void> => {
-
-  extension.Logger.debug(`My extension is setting up. name: ${extension.extensionName}, id: ${extension.extensionId}`);
-
-  /**
-   * (Optional) Adding custom SQL table
-   */
-  await extension.db.setExtensionTables([TestLoggerEntity]);
-  /**
-   * (Optional) Using prod package
-   */
-  extension.Logger.silly('lodash prod package works: ', _.defaults({'a': 1}, {'a': 3, 'b': 2}));
-
-  /**
-   * (Optional) Implementing lifecycles events with MetadataLoader example
-   * */
-  extension.events.gallery.MetadataLoader
-    .loadPhotoMetadata.before(async (input, event) => {
-    extension.Logger.silly('onBefore: processing: ', JSON.stringify(input));
-    // The return value of this function will be piped to the next before handler
-    // or if no other handler then returned to the app
-    return input;
-    /*
-    * (Optional) It is possible to prevent default run and return with the expected out output of the MetadataLoader.loadPhotoMetadata
-    NOTE: if event.stopPropagation = true, MetadataLoader.loadPhotoMetadata.after won't be called.
-    event.stopPropagation = true;
-    return {
-      size: {width: 1, height: 1},
-      fileSize: 1,
-      creationDate: 0
-    } as PhotoMetadata;
-    */
-  });
-
-  extension.events.gallery.MetadataLoader
-    .loadPhotoMetadata.after(async (data: { input: [string], output: PhotoMetadata }) => {
-    // Overrides the caption on all photos
-    // NOTE: this needs db reset as MetadataLoader only runs during indexing time
-    data.output.caption = extension.config.getConfig().myFavouriteNumber + '|PG2 sample extension:' + data.output.caption;
-    // The return value of this function will be piped to the next after handler
-    // or if no other handler then returned to the app
-    return data.output;
-  });
-
-  /**
-   * (Optional) Adding a REST api endpoint for logged-in users
-   */
-
-  extension.RESTApi.get.jsonResponse(['/sample'], UserRoles.User, async () => {
-    // Inserting into our extension table and returning with the result
-    const conn = await extension.db.getSQLConnection();
-    conn.getRepository(TestLoggerEntity).save({text: 'called /sample at: ' + Date.now()});
-    return await conn.getRepository(TestLoggerEntity).find();
-  });
-
-  /**
-   * (Optional) Adding a button to all media elements to be able to delete them
-   */
-  extension.ui.addMediaButton({
-    name: 'delete',
-    svgIcon: {
-      viewBox: '0 0 448 512',
-      items: '<path d="M136.7 5.9L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-8.7-26.1C306.9-7.2 294.7-16 280.9-16L167.1-16c-13.8 0-26 8.8-30.4 21.9zM416 144L32 144 53.1 467.1C54.7 492.4 75.7 512 101 512L347 512c25.3 0 46.3-19.6 47.9-44.9L416 144z"/></svg>'
-    },
-    apiPath: 'delete',
-    reloadContent: true,
-    minUserRole: UserRoles.User,
-    popup: {
-      header: 'Deleting from DB',
-      body: 'Are you sure?</b>This will delete the photo from the DB only. Next indexing will readd this photo.',
-      buttonString: 'Delete',
-      customFields: [
-        {
-          id: 'confirm',
-          label: 'confirm deletion',
-          type: 'boolean',
-          defaultValue: false,
-          required: true
+    // Add CSS injection or style handling if needed, and the favorite toggle button
+    extension.ui.addMediaButton({
+        name: 'favorite',
+        svgIcon: {
+            viewBox: '0 0 576 512',
+            items: '<path fill="currentColor" d="M528.1 171.5L382 150.2 316.7 17c-11.7-23.6-45.6-23.6-57.4 0L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.1 23 46 46.4 33.7L288 439.6l130.7 68.7c23.4 12.3 50.9-7.6 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6zM388.6 312.3l23.7 138.4-124.3-65.4c-9.3-4.9-20.5-4.9-29.8 0L163.7 450.7l23.7-138.4c1.8-10.5-2.6-21.2-11.2-27.2L55.6 210.9l139.8-20.3c10.9-1.6 20.2-8.5 24.9-18.5L288 61.5l68.7 110.6c4.7 10 14 16.9 24.9 18.5l139.8 20.3-122.9 74.2c-8.6 6-13 16.7-11.2 27.2z"/>'
+        },
+        apiPath: 'toggle-favorite',
+        reloadContent: true,
+        alwaysVisible: true,
+        minUserRole: UserRoles.User,
+        metadataFilter: [{ field: 'keywords', comparator: '==', value: 'pg-favorite' }]
+    }, async (params, body, user, media, repository) => {
+        const favTag = 'pg-favorite';
+        media.metadata.keywords = media.metadata.keywords || [];
+        const idx = media.metadata.keywords.indexOf(favTag);
+        if (idx >= 0) {
+            media.metadata.keywords.splice(idx, 1);
+        } else {
+            media.metadata.keywords.push(favTag);
         }
-      ]
-    }
-  }, async (params: ParamsDictionary, body: IMediaRequestBody, user: UserDTO, media: MediaEntity, repository: Repository<MediaEntity>) => {
-    await repository.delete(media.id);
-  });
-
-  /**
-   * (Optional) Adding a button to all media elements to be able to edit them
-   */
-  extension.ui.addMediaButton({
-    name: 'edit',
-    svgIcon: {
-      viewBox: '0 0 512 512',
-      items: '<path d="M352.9 21.2L308 66.1 445.9 204 490.8 159.1C504.4 145.6 512 127.2 512 108s-7.6-37.6-21.2-51.1L455.1 21.2C441.6 7.6 423.2 0 404 0s-37.6 7.6-51.1 21.2zM274.1 100L58.9 315.1c-10.7 10.7-18.5 24.1-22.6 38.7L.9 481.6c-2.3 8.3 0 17.3 6.2 23.4s15.1 8.5 23.4 6.2l127.8-35.5c14.6-4.1 27.9-11.8 38.7-22.6L412 237.9 274.1 100z"/></svg>'
-    },
-    apiPath: 'edit',
-    reloadContent: true,
-    skipVideos: true,
-    popup: {
-      header: 'Editing',
-      body: 'Are you sure?',
-      buttonString: 'Save',
-      fields: [
-        'title', 'caption', 'cameraData', 'positionData', 'faces', 'keywords', 'size', 'creationDate', 'creationDateOffset',
-        'bitRate', 'duration', 'fileSize', 'fps'
-      ]
-    }
-
-  }, async (params: ParamsDictionary, body: IMediaRequestBody, user: UserDTO, media: MediaEntity, repository: Repository<MediaEntity>) => {
-    // Update media entity with data from the body
-    if (body?.data?.fields) {
-      // Update fields that are present in the body data
-      if (body.data.fields.title !== undefined) {
-        media.metadata.title = body.data.fields.title;
-      }
-      if (body.data.fields.caption !== undefined) {
-        media.metadata.caption = body.data.fields.caption;
-      }
-      if (body.data.fields.cameraData !== undefined) {
-        media.metadata.cameraData = JSON.parse(body.data.fields.cameraData);
-      }
-      if (body.data.fields.positionData !== undefined) {
-        media.metadata.positionData = JSON.parse(body.data.fields.positionData);
-      }
-      if (body.data.fields.faces !== undefined) {
-        media.metadata.faces = JSON.parse(body.data.fields.faces);
-      }
-      if (body.data.fields.keywords !== undefined) {
-        media.metadata.keywords = JSON.parse(body.data.fields.keywords);
-      }
-      if (body.data.fields.size !== undefined) {
-        media.metadata.size = JSON.parse(body.data.fields.size);
-      }
-      if (body.data.fields.creationDate !== undefined) {
-        media.metadata.creationDate = parseInt(body.data.fields.creationDate, 10);
-      }
-      if (body.data.fields.creationDateOffset !== undefined) {
-        media.metadata.creationDateOffset = body.data.fields.creationDateOffset;
-      }
-      if (body.data.fields.fileSize !== undefined) {
-        media.metadata.fileSize = parseInt(body.data.fields.fileSize, 10);
-      }
-
-      // Save the updated media entity
-      await repository.save(media);
-      console.log('Media entity updated successfully');
-    }
-  });
-
-
-  /**
-   * (Optional) Adding a (non-clickable) button to all photos with 4+ stars
-   * Note: button order matters, but always visible buttons will be shown first
-   */
-  extension.ui.addMediaButton({
-    name: 'Great Photo',
-    svgIcon: {
-      viewBox: '0 0 640 640',
-      items: '<path d="M341.5 45.1C337.4 37.1 329.1 32 320.1 32C311.1 32 302.8 37.1 298.7 45.1L225.1 189.3L65.2 214.7C56.3 216.1 48.9 222.4 46.1 231C43.3 239.6 45.6 249 51.9 255.4L166.3 369.9L141.1 529.8C139.7 538.7 143.4 547.7 150.7 553C158 558.3 167.6 559.1 175.7 555L320.1 481.6L464.4 555C472.4 559.1 482.1 558.3 489.4 553C496.7 547.7 500.4 538.8 499 529.8L473.7 369.9L588.1 255.4C594.5 249 596.7 239.6 593.9 231C591.1 222.4 583.8 216.1 574.8 214.7L415 189.3L341.5 45.1z"/></svg>'
-    },
-    metadataFilter: [{field: 'rating', comparator: '>=', value: 4}],
-    alwaysVisible: true
-  });
-
-
-  /**
-   * (Optional) Adding a button to create a logical album and add photos to it.
-   * TODO: this is half baked solution. On reindex or DB reset (like after a version upgrade) the album will be lost or photos of the reindexed gallery will be missing.
-   * Possible workarounds:
-   * 1. (medium) store the keyword in a separate table and readd it after indexing (override that function in the extension)
-   * 2. (easy) Read the current DB after indexing and make sure that the indexing output contains all album tags.
-   * 3. (medium) Save the tag as a sidecar file next to the photo, so indexing will pick it up automatically.
-   *     * (hard) Alternative of this solution is to store the sidecar in the tmp folder and override the indexing to also read sidecars from the tmp folder.
-   */
-  extension.ui.addMediaButton({
-    name: 'Add to album',
-    svgIcon: {
-      viewBox: '0 0 512 512',
-      items: '<rect x="64" y="176" width="384" height="256" rx="28.87" ry="28.87" fill="currentColor" stroke="currentColor" stroke-linejoin="round" stroke-width="32"/><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32" d="M144 80h224M112 128h288"/>'
-    },
-    minUserRole: UserRoles.User, // guests/ sharing should not be able to add photos to albums
-    apiPath: 'add-album',
-    reloadContent: true, // render newly added tag on the photos
-    popup: {
-      header: 'Add to Album',
-      body: 'Adding photo to the album</b>This will add a <album name> keyword to the given photo and create an album to show those keywords. On database reset or folder reindexing this info will be lost. Consider saving this keyword next to the photo as a sidecar file or using a second table to store this inforamtion.',
-      buttonString: 'Add',
-      customFields: [
-        {
-          id: 'album',
-          label: 'Album name',
-          type: 'string',
-          keepValue: true, // make it easier to add multiple photos to the same album by remember the album name
-          defaultValue: 'Album name',
-          required: true
-        }
-      ]
-    }
-  }, async (params: ParamsDictionary, body: IMediaRequestBody, user: UserDTO, media: MediaEntity, repository: Repository<MediaEntity>) => {
-    // Update media entity with data from the body
-    if (body.data.customFields.album) {
-      // Crate the album keyword
-      const albumKey = 'pg-album:' + body.data.customFields.album.toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')          // Replace groups of non-alphanumeric characters with one hyphen
-        .replace(/^-+|-+$/g, '');             // Remove hyphens from the start or end
-      // Save the updated media entity
-      media.metadata.keywords = media.metadata.keywords || []; // make sure this media has keywords.
-      media.metadata.keywords.push(albumKey);
-      await repository.save(media);
-      // create the album if not exists
-      await extension._app.objectManagers.AlbumManager.addIfNotExistSavedSearch(body.data.customFields.album, {
-        type: SearchQueryTypes.keyword,
-        value: albumKey,
-        matchType: TextSearchQueryMatchTypes.exact_match
-      } as TextSearch, false);
-      extension.Logger.debug('Media added to album: ' + body.data.customFields.album + '');
-    } else {
-      extension.Logger.warn('No album name provided');
-    }
-  });
-
-  // Add a Favorites button (star outline) to toggle the pg-favorite tag
-  extension.ui.addMediaButton({
-    name: 'favorite',
-    svgIcon: {
-      viewBox: '0 0 576 512',
-      // Star outline (regular) icon; will be colored gold via CSS when active
-      items: '<path fill="currentColor" d="M528.1 171.5L382 150.2 316.7 17c-11.7-23.6-45.6-23.6-57.4 0L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.1 23 46 46.4 33.7L288 439.6l130.7 68.7c23.4 12.3 50.9-7.6 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6zM388.6 312.3l23.7 138.4-124.3-65.4c-9.3-4.9-20.5-4.9-29.8 0L163.7 450.7l23.7-138.4c1.8-10.5-2.6-21.2-11.2-27.2L55.6 210.9l139.8-20.3c10.9-1.6 20.2-8.5 24.9-18.5L288 61.5l68.7 110.6c4.7 10 14 16.9 24.9 18.5l139.8 20.3-122.9 74.2c-8.6 6-13 16.7-11.2 27.2z"/>'
-    },
-    apiPath: 'toggle-favorite',
-    reloadContent: true,
-    // The button will always be visible; we will style it based on presence of the tag.
-    alwaysVisible: true,
-    // Optional: disable for non‑logged‑in users if desired
-    minUserRole: UserRoles.User
-  }, async (params, body, user, media, repository) => {
-    // Toggle the 'pg-favorite' keyword for this media
-    const favTag = 'pg-favorite';
-    media.metadata.keywords = media.metadata.keywords || [];
-    const idx = media.metadata.keywords.indexOf(favTag);
-    if (idx >= 0) {
-      // Remove favorite
-      media.metadata.keywords.splice(idx, 1);
-    } else {
-      // Add favorite
-      media.metadata.keywords.push(favTag);
-    }
-    await repository.save(media);
-    // No need to return anything; UI will refresh because reloadContent is true
-  });
-
-  /**
-   * (Optional) Creating a messenger. You can use it with TopPickJob to send photos
-   */
-  extension.messengers.addMessenger<{
-    text: string // same as the Ids below in the config array
-  }>('SampleMessenger',
-    /**
-     * (Optional) Creating messenger config (these values will be requested in the TopPickJob)
-     * Note: Jobs cant use typeconfig yet, so it uses a different way for configuration
-     */
-    [{
-      id: 'text', // same as the keys in the function template above
-      type: 'string',
-      name: 'just a text',
-      description: 'nothing to mention here',
-      defaultValue: 'I hand picked these photos just for you:',
-    }],
-    {
-      sendMedia: async (c, m) => {
-        console.log('config got:', c.text);
-        // we are not sending the photos anywhere, just logging them on the console.
-        console.log(m);
-      }
+        await repository.save(media);
     });
 };
 
-export const cleanUp = async (extension: IExtensionObject<TestConfig>): Promise<void> => {
-  extension.Logger.debug('Cleaning up');
-  /*
-  * No need to clean up changed through extension.db,  extension.RESTApi or extension.events
-  * */
+export const cleanUp = async (extension: IExtensionObject): Promise<void> => {
+    extension.Logger.debug('Cleaning up favorites extension');
 };
