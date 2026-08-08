@@ -1,7 +1,16 @@
 "use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cleanUp = exports.init = void 0;
-const tslib_1 = require("tslib");
+
 const UserDTO_1 = require("./node_modules/pigallery2-extension-kit/lib/common/entities/UserDTO");
 const SearchQueryDTO_1 = require("./node_modules/pigallery2-extension-kit/lib/common/entities/SearchQueryDTO");
 // Including prod extension packages. You need to prefix them with ./node_modules
@@ -14,18 +23,19 @@ const typeorm_1 = require("typeorm");
 // Using typeorm for ORM
 let TestLoggerEntity = class TestLoggerEntity {
 };
-tslib_1.__decorate([
+__decorate([
     (0, typeorm_1.Index)(),
     (0, typeorm_1.PrimaryGeneratedColumn)({ unsigned: true }),
-    tslib_1.__metadata("design:type", Number)
+    __metadata("design:type", Number)
 ], TestLoggerEntity.prototype, "id", void 0);
-tslib_1.__decorate([
+__decorate([
     (0, typeorm_1.Column)(),
-    tslib_1.__metadata("design:type", String)
+    __metadata("design:type", String)
 ], TestLoggerEntity.prototype, "text", void 0);
-TestLoggerEntity = tslib_1.__decorate([
+TestLoggerEntity = __decorate([
     (0, typeorm_1.Entity)()
 ], TestLoggerEntity);
+
 const init = async (extension) => {
     extension.Logger.debug(`My extension is setting up. name: ${extension.extensionName}, id: ${extension.extensionId}`);
     /**
@@ -88,7 +98,7 @@ const init = async (extension) => {
         minUserRole: UserDTO_1.UserRoles.User,
         popup: {
             header: 'Deleting from DB',
-            body: 'Are you sure?</b>This will delete the photo from the DB only. Next indexing will readd this photo.',
+            body: '<b>Are you sure?</b>This will delete the photo from the DB only. Next indexing will readd this photo.',
             buttonString: 'Delete',
             customFields: [
                 {
@@ -178,12 +188,6 @@ const init = async (extension) => {
     });
     /**
      * (Optional) Adding a button to create a logical album and add photos to it.
-     * TODO: this is half baked solution. On reindex or DB reset (like after a version upgrade) the album will be lost or photos of the reindexed gallery will be missing.
-     * Possible workarounds:
-     * 1. (medium) store the keyword in a separate table and readd it after indexing (override that function in the extension)
-     * 2. (easy) Read the current DB after indexing and make sure that the indexing output contains all album tags.
-     * 3. (medium) Save the tag as a sidecar file next to the photo, so indexing will pick it up automatically.
-     *     * (hard) Alternative of this solution is to store the sidecar in the tmp folder and override the indexing to also read sidecars from the tmp folder.
      */
     extension.ui.addMediaButton({
         name: 'Add to album',
@@ -191,19 +195,19 @@ const init = async (extension) => {
             viewBox: '0 0 512 512',
             items: '<rect x="64" y="176" width="384" height="256" rx="28.87" ry="28.87" fill="currentColor" stroke="currentColor" stroke-linejoin="round" stroke-width="32"/><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32" d="M144 80h224M112 128h288"/>'
         },
-        minUserRole: UserDTO_1.UserRoles.User, // guests/ sharing should not be able to add photos to albums
+        minUserRole: UserDTO_1.UserRoles.User,
         apiPath: 'add-album',
-        reloadContent: true, // render newly added tag on the photos
+        reloadContent: true, 
         popup: {
             header: 'Add to Album',
-            body: 'Adding photo to the album</b>This will add a <album name> keyword to the given photo and create an album to show those keywords. On database reset or folder reindexing this info will be lost. Consider saving this keyword next to the photo as a sidecar file or using a second table to store this inforamtion.',
+            body: '<b>Adding photo to the album.</b> This will add an <album name> keyword to the given photo and create an album to show those keywords. On database reset or folder reindexing this info will be lost. Consider saving this keyword next to the photo as a sidecar file or using a second table to store this information.',
             buttonString: 'Add',
             customFields: [
                 {
                     id: 'album',
                     label: 'Album name',
                     type: 'string',
-                    keepValue: true, // make it easier to add multiple photos to the same album by remember the album name
+                    keepValue: true, 
                     defaultValue: 'Album name',
                     required: true
                 }
@@ -211,14 +215,14 @@ const init = async (extension) => {
         }
     }, async (params, body, user, media, repository) => {
         // Update media entity with data from the body
-        if (body.data.customFields.album) {
+        if (body?.data?.customFields?.album) {
             // Crate the album keyword
             const albumKey = 'pg-album:' + body.data.customFields.album.toLowerCase()
                 .trim()
-                .replace(/[^a-z0-9]+/g, '-') // Replace groups of non-alphanumeric characters with one hyphen
-                .replace(/^-+|-+$/g, ''); // Remove hyphens from the start or end
+                .replace(/[^a-z0-9]+/g, '-') 
+                .replace(/^-+|-+$/g, ''); 
             // Save the updated media entity
-            media.metadata.keywords = media.metadata.keywords || []; // make sure this media has keywords.
+            media.metadata.keywords = media.metadata.keywords || [];
             media.metadata.keywords.push(albumKey);
             await repository.save(media);
             // create the album if not exists
@@ -233,46 +237,35 @@ const init = async (extension) => {
             extension.Logger.warn('No album name provided');
         }
     });
-    // Add a Favorites button (star outline) to toggle the pg-favorite tag
+    // Add a Favorites button
     extension.ui.addMediaButton({
         name: 'favorite',
         svgIcon: {
             viewBox: '0 0 576 512',
-            // Star outline (regular) icon; will be colored gold via CSS when active
             items: '<path fill="currentColor" d="M528.1 171.5L382 150.2 316.7 17c-11.7-23.6-45.6-23.6-57.4 0L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.1 23 46 46.4 33.7L288 439.6l130.7 68.7c23.4 12.3 50.9-7.6 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6zM388.6 312.3l23.7 138.4-124.3-65.4c-9.3-4.9-20.5-4.9-29.8 0L163.7 450.7l23.7-138.4c1.8-10.5-2.6-21.2-11.2-27.2L55.6 210.9l139.8-20.3c10.9-1.6 20.2-8.5 24.9-18.5L288 61.5l68.7 110.6c4.7 10 14 16.9 24.9 18.5l139.8 20.3-122.9 74.2c-8.6 6-13 16.7-11.2 27.2z"/>'
         },
         apiPath: 'toggle-favorite',
         reloadContent: true,
-        // The button will always be visible; we will style it based on presence of the tag.
         alwaysVisible: true,
-        // Optional: disable for non‑logged‑in users if desired
         minUserRole: UserDTO_1.UserRoles.User
     }, async (params, body, user, media, repository) => {
-        // Toggle the 'pg-favorite' keyword for this media
         const favTag = 'pg-favorite';
         media.metadata.keywords = media.metadata.keywords || [];
         const idx = media.metadata.keywords.indexOf(favTag);
         if (idx >= 0) {
-            // Remove favorite
             media.metadata.keywords.splice(idx, 1);
         }
         else {
-            // Add favorite
             media.metadata.keywords.push(favTag);
         }
         await repository.save(media);
-        // No need to return anything; UI will refresh because reloadContent is true
     });
     /**
      * (Optional) Creating a messenger. You can use it with TopPickJob to send photos
      */
     extension.messengers.addMessenger('SampleMessenger', 
-    /**
-     * (Optional) Creating messenger config (these values will be requested in the TopPickJob)
-     * Note: Jobs cant use typeconfig yet, so it uses a different way for configuration
-     */
     [{
-            id: 'text', // same as the keys in the function template above
+            id: 'text',
             type: 'string',
             name: 'just a text',
             description: 'nothing to mention here',
@@ -280,7 +273,6 @@ const init = async (extension) => {
         }], {
         sendMedia: async (c, m) => {
             console.log('config got:', c.text);
-            // we are not sending the photos anywhere, just logging them on the console.
             console.log(m);
         }
     });
@@ -288,9 +280,6 @@ const init = async (extension) => {
 exports.init = init;
 const cleanUp = async (extension) => {
     extension.Logger.debug('Cleaning up');
-    /*
-    * No need to clean up changed through extension.db,  extension.RESTApi or extension.events
-    * */
 };
 exports.cleanUp = cleanUp;
 //# sourceMappingURL=server.js.map
