@@ -1,5 +1,5 @@
 {
-  "name": "pigallery2-sample-extension",
+  "name": "pigallery2-favorites-extension",
   "version": "3.5.2",
   "license": "MIT",
   "dependencies": {
